@@ -1,10 +1,10 @@
 console.log('The extension is running');
 
-const url = chrome.runtime.getURL('badWords.json');
+const badWordsJSON = chrome.runtime.getURL('badWords.json');
 
 const fetchBadWords = async () => {
   try {
-    const response = await fetch(url);
+    const response = await fetch(badWordsJSON);
     const badWords = await response.json();
     return badWords;
   } catch (error) {
@@ -14,18 +14,30 @@ const fetchBadWords = async () => {
 };
 
 const censor = async () => {
+  const nodes = [];
   const badWords = await fetchBadWords();
+  const regex = new RegExp(`\\b(${badWords.join('|')})\\b`, 'gi');
+
   if (badWords.length === 0) return;
 
-  const tree = document.body.querySelectorAll('*');
-  const elements = Array.from(tree);
+  const treeWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, node =>
+    !node.nodeValue.trim() ? NodeFilter.FILTER_SKIP : NodeFilter.FILTER_ACCEPT
+  );
 
-  for (let i = 0; i < elements.length; i++) {
-    const word = elements[i].textContent.trim().toLowerCase();
-    if (badWords.find(el => el == word)) {
-      elements[i].style.filter = 'blur(4px)';
-    }
+  while (treeWalker.nextNode()) {
+    const node = treeWalker.currentNode;
+    const text = node.nodeValue;
+
+    if (regex.test(text)) nodes.push(node);
   }
+
+  nodes?.forEach(node => {
+    const newNode = document.createElement('p');
+    const censorship = '*'.repeat(Math.round(Math.random() * 5 + 3));
+
+    newNode.innerHTML = node.nodeValue.replace(regex, `<span style="filter: blur(3px)">${censorship}</span>`);
+    node.parentNode.replaceChild(newNode, node);
+  });
 };
 
 censor();
