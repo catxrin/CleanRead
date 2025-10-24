@@ -29,14 +29,19 @@ const censor = async () => {
     const text = node.nodeValue;
 
     if (regex.test(text)) nodes.push(node);
+
+    regex.lastIndex = 0;
   }
 
   nodes?.forEach(node => {
-    const newNode = document.createElement('p');
-    const censorship = '*'.repeat(Math.round(Math.random() * 5 + 3));
+    const newNode = document.createElement('span');
+    newNode.style.filter = 'blur(3px)';
 
-    newNode.innerHTML = node.nodeValue.replace(regex, `<span style="filter: blur(3px)">${censorship}</span>`);
-    node.parentNode.replaceChild(newNode, node);
+    const censorship = '*'.repeat(Math.round(Math.random() * 5 + 3));
+    newNode.textContent = censorship;
+
+    node.parentElement.insertBefore(newNode, node);
+    node.parentNode.removeChild(node);
   });
 };
 
